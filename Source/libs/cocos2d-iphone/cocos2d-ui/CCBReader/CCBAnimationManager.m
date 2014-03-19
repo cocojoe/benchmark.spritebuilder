@@ -54,9 +54,9 @@ static NSInteger ccbAnimationManagerID = 0;
     _baseValues = [[NSMutableDictionary alloc] init];
     
     // Scheduler
-    _scheduler = [[CCDirector sharedDirector] scheduler];
-    [_scheduler scheduleTarget:self];
-    [_scheduler setPaused:NO target:self];
+    //_scheduler = [[CCDirector sharedDirector] scheduler];
+    //[_scheduler scheduleTarget:self];
+    //[_scheduler setPaused:NO target:self];
     
     // Current Sequence Actions
     _currentActions = [[NSMutableArray alloc] init];
@@ -255,8 +255,9 @@ static NSInteger ccbAnimationManagerID = 0;
         // Animate @toto Add to current actions (needs tested)
         CCActionInterval* tweenAction = [self actionFromKeyframe0:NULL andKeyframe1:kf1 propertyName:name node:node];
         tweenAction.tag = (int)_animationManagerId;
-        [tweenAction startWithTarget:node];
-        [_currentActions addObject:tweenAction];
+        [node runAction:tweenAction];
+        //[tweenAction startWithTarget:node];
+        //[_currentActions addObject:tweenAction];
     }
     else
     {
@@ -436,8 +437,9 @@ static NSInteger ccbAnimationManagerID = 0;
     // Create Sequence Added to Manager Sequence Array
     CCActionSequence* seq = [CCActionSequence actionWithArray:actions];
     seq.tag = _animationManagerId;
-    [seq startWithTarget:node];
-    [_currentActions addObject:seq];
+    [node runAction:seq];
+    //[seq startWithTarget:node];
+    //[_currentActions addObject:seq];
 }
 
 - (id) actionForCallbackChannel:(CCBSequenceProperty*) channel
@@ -510,11 +512,13 @@ static NSInteger ccbAnimationManagerID = 0;
     
     [_scheduler setPaused:YES target:self];
     [self clearAllActions];
+
     
     // Contains all Sequence Propertys / Keyframe
     for (NSValue* nodePtr in _nodeSequences)
     {
         CCNode* node = [nodePtr pointerValue];
+        [self removeActionsByTag:_animationManagerId fromNode:node];
         
         NSDictionary* seqs = [_nodeSequences objectForKey:nodePtr];
         NSDictionary* seqNodeProps = [seqs objectForKey:[NSNumber numberWithInt:seqId]];
@@ -580,8 +584,9 @@ static NSInteger ccbAnimationManagerID = 0;
                                         actionOne:[CCActionDelay actionWithDuration:seq.duration+tweenDuration-time]
                                         two:[CCActionCallFunc actionWithTarget:self selector:@selector(sequenceCompleted)]];
     completeAction.tag = (int)_animationManagerId;
-    [completeAction startWithTarget:self.rootNode];
-    [_currentActions addObject:completeAction];
+    [self.rootNode runAction:completeAction];
+    //[completeAction startWithTarget:self.rootNode];
+    //[_currentActions addObject:completeAction];
     
     // Playback callbacks and sounds
     if (seq.callbackChannel) {
@@ -589,8 +594,9 @@ static NSInteger ccbAnimationManagerID = 0;
         CCAction* action = [self actionForCallbackChannel:seq.callbackChannel];
         if (action) {
             action.tag = (int)_animationManagerId;
-            [action startWithTarget:self.rootNode];
-            [_currentActions addObject:action];
+            [self.rootNode runAction:action];
+            //[action startWithTarget:self.rootNode];
+            //[_currentActions addObject:action];
         }
     }
     
@@ -599,8 +605,9 @@ static NSInteger ccbAnimationManagerID = 0;
         CCAction* action = [self actionForSoundChannel:seq.soundChannel];
         if (action) {
             action.tag = (int)_animationManagerId;
-            [action startWithTarget:self.rootNode];
-            [_currentActions addObject:action];
+            [self.rootNode runAction:action];
+            //[action startWithTarget:self.rootNode];
+            //[_currentActions addObject:action];
         }
     }
 
@@ -806,6 +813,16 @@ static NSInteger ccbAnimationManagerID = 0;
         if([action isDone]) {
             [_currentActions removeObject:action];
         }
+    }
+}
+
+- (void) removeActionsByTag:(NSInteger)tag fromNode:(CCNode*)node
+{
+    CCActionManager* am = [[CCDirector sharedDirector] actionManager];
+    
+    while ([am getActionByTag:tag target:node])
+    {
+        [am removeActionByTag:tag target:node];
     }
 }
 
