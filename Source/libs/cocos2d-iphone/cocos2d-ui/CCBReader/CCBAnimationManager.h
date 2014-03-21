@@ -51,6 +51,9 @@
     
     CCScheduler* _scheduler;
     NSMutableArray* _currentActions;
+    
+    // Action Cache
+    NSMutableArray* _actionKFCache;
 }
 
 // Sequence Array.
