@@ -793,16 +793,25 @@ static NSInteger ccbAnimationManagerID = 0;
     CCBKeyframe* startKF = [keyframes objectAtIndex:beginKeyFrame];
     CCBKeyframe* endKF   = [keyframes objectAtIndex:endKeyFrame];
     
-    CCActionInterval* action = [self actionFromKeyframe0:startKF andKeyframe1:endKF propertyName:seqProp.name node:node];
+    CCActionSequence* seq;
+    if(endKF.frameActions) {
+        seq = [endKF.frameActions copy];
+    } else {
     
-    if (action) {
-        // @todo Apply Easing (Review This)
-        action = [self easeAction:action easingType:startKF.easingType easingOpt:startKF.easingOpt];
-        [actions addObject:action];
+        CCActionInterval* action = [self actionFromKeyframe0:startKF andKeyframe1:endKF propertyName:seqProp.name node:node];
+    
+        if (action) {
+            // @todo Apply Easing (Review This)
+            action = [self easeAction:action easingType:startKF.easingType easingOpt:startKF.easingOpt];
+            [actions addObject:action];
+        }
+        
+        // Cache
+        seq = [CCActionSequence actionWithArray:actions];
+        seq.tag = _animationManagerId;
+        endKF.frameActions = [seq copy];
     }
     
-    CCActionSequence* seq = [CCActionSequence actionWithArray:actions];
-    seq.tag = _animationManagerId;
     return seq;
 }
 
