@@ -63,8 +63,7 @@ static NSInteger ccbAnimationManagerID = 0;
     _playbackSpeed  = 1.0f;
     _paused         = NO;
     
-    // Action Cache
-    _actionKFCache    = [[NSMutableArray alloc] init];
+    _lastSequence   = nil;
     
     return self;
 }
@@ -425,27 +424,17 @@ static NSInteger ccbAnimationManagerID = 0;
         }
     }
     
-    // Check Cache
-    CCActionSequence* seq = nil;
-    //if([_actionKFCache count] > (startFrame+1)) {
-    //    seq = [CCActionSequence actionWithArray:[[_actionKFCache objectAtIndex:startFrame] copy]];
-    //} else {
-        
-        // Build Actions
-        [actions addObject:[self createActionForNode:node sequenceProperty:seqProp beginKeyFrame:startFrame endKeyFrame:endFrame]];
-        
-        // Next Sequence
-        CCActionCallBlock* nextKeyFrameBlock = [CCActionCallBlock actionWithBlock:^{
-            [self runActionsForNode:node sequenceProperty:seqProp tweenDuration:0 startKeyFrame:endFrame];
-        }];
-        
-        [actions addObject:nextKeyFrameBlock];
-        
-        seq = [CCActionSequence actionWithArray:actions];
-        //[_actionKFCache addObject:[seq copy]];
-    //}
+    // Build Actions
+    [actions addObject:[self createActionForNode:node sequenceProperty:seqProp beginKeyFrame:startFrame endKeyFrame:endFrame]];
     
-    // Set Sequence
+    // Next Sequence
+    CCActionCallBlock* nextKeyFrameBlock = [CCActionCallBlock actionWithBlock:^{
+        [self runActionsForNode:node sequenceProperty:seqProp tweenDuration:0 startKeyFrame:endFrame];
+    }];
+    
+    [actions addObject:nextKeyFrameBlock];
+    
+    CCActionSequence* seq = [CCActionSequence actionWithArray:actions];
     seq.tag = _animationManagerId;
     [seq startWithTarget:node];
     [_currentActions addObject:seq];
@@ -546,22 +535,24 @@ static NSInteger ccbAnimationManagerID = 0;
             [self runActionsForNode:node sequenceProperty:seqProp tweenDuration:tweenDuration startKeyFrame:0];
         }
         
-        /*
-        // Reset the nodes that may have been changed by other timelines
-        NSDictionary* nodeBaseValues = [_baseValues objectForKey:nodePtr];
-        for (NSString* propName in nodeBaseValues)
-        {
-            if (![seqNodePropNames containsObject:propName])
+        
+        if(_lastSequence.sequenceId!=seqId) {
+            // Reset the nodes that may have been changed by other timelines
+            NSDictionary* nodeBaseValues = [_baseValues objectForKey:nodePtr];
+            for (NSString* propName in nodeBaseValues)
             {
-                id value = [nodeBaseValues objectForKey:propName];
-                
-                if (value)
+                if (![seqNodePropNames containsObject:propName])
                 {
-                    [self setAnimatedProperty:propName forNode:node toValue:value tweenDuration:tweenDuration];
+                    id value = [nodeBaseValues objectForKey:propName];
+                    
+                    if (value)
+                    {
+                        [self setAnimatedProperty:propName forNode:node toValue:value tweenDuration:tweenDuration];
+                    }
                 }
             }
         }
-        */
+        
     }
     
     [self addSequenceCallBacks:seqId tweenDuration:tweenDuration startTime:0];
@@ -625,6 +616,7 @@ static NSInteger ccbAnimationManagerID = 0;
     if (_lastCompletedSequenceName != _runningSequence.name)
     {
         _lastCompletedSequenceName = [_runningSequence.name copy];
+        _lastSequence              = _runningSequence;
     }
     
     // Play next sequence
@@ -787,9 +779,6 @@ static NSInteger ccbAnimationManagerID = 0;
 {
     NSArray* keyframes = [seqProp keyframes];
     
-    // Build Animation Actions
-    NSMutableArray* actions = [[NSMutableArray alloc] init];
-    
     CCBKeyframe* startKF = [keyframes objectAtIndex:beginKeyFrame];
     CCBKeyframe* endKF   = [keyframes objectAtIndex:endKeyFrame];
     
@@ -797,6 +786,9 @@ static NSInteger ccbAnimationManagerID = 0;
     if(endKF.frameActions) {
         seq = [endKF.frameActions copy];
     } else {
+        
+        // Build Animation Actions
+        NSMutableArray* actions = [[NSMutableArray alloc] init];
     
         CCActionInterval* action = [self actionFromKeyframe0:startKF andKeyframe1:endKF propertyName:seqProp.name node:node];
     
