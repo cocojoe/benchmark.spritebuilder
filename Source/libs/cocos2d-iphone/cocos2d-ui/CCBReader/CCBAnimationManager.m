@@ -65,6 +65,9 @@ static NSInteger ccbAnimationManagerID = 0;
     
     _lastSequence   = nil;
     
+    actionCounter = 0;
+    
+    
     return self;
 }
 
@@ -158,38 +161,6 @@ static NSInteger ccbAnimationManagerID = 0;
     {
         return [CCActionRotateTo actionWithDuration:duration angle:[kf1.value floatValue] direct:YES];
     }
-    else if ([name isEqualToString:@"rotationalSkewX"])
-    {
-        return [CCActionRotateTo actionWithDuration:duration angleX:[kf1.value floatValue]];
-    }
-    else if ([name isEqualToString:@"rotationalSkewY"])
-    {
-        return [CCActionRotateTo actionWithDuration:duration angleY:[kf1.value floatValue]];
-    }
-    else if ([name isEqualToString:@"opacity"])
-    {
-        return [CCActionFadeTo actionWithDuration:duration opacity:[kf1.value intValue]];
-    }
-    else if ([name isEqualToString:@"color"])
-    {
-        CCColor* color = kf1.value;
-        return [CCActionTintTo actionWithDuration:duration color:color];
-    }
-    else if ([name isEqualToString:@"visible"])
-    {
-        if ([kf1.value boolValue])
-        {
-            return [CCActionSequence actionOne:[CCActionDelay actionWithDuration:duration] two:[CCActionShow action]];
-        }
-        else
-        {
-            return [CCActionSequence actionOne:[CCActionDelay actionWithDuration:duration] two:[CCActionHide action]];
-        }
-    }
-    else if ([name isEqualToString:@"spriteFrame"])
-    {
-        return [CCActionSequence actionOne:[CCActionDelay actionWithDuration:duration] two:[CCActionSpriteFrame actionWithSpriteFrame:kf1.value]];
-    }
     else if ([name isEqualToString:@"position"])
     {
         // Get position type
@@ -236,6 +207,40 @@ static NSInteger ccbAnimationManagerID = 0;
         float y = [[value objectAtIndex:1] floatValue];
         
         return [CCActionSkewTo actionWithDuration:duration skewX:x skewY:y];
+    }
+    
+    else if ([name isEqualToString:@"rotationalSkewX"])
+    {
+        return [CCActionRotateTo actionWithDuration:duration angleX:[kf1.value floatValue]];
+    }
+    else if ([name isEqualToString:@"rotationalSkewY"])
+    {
+        return [CCActionRotateTo actionWithDuration:duration angleY:[kf1.value floatValue]];
+    }
+    else if ([name isEqualToString:@"opacity"])
+    {
+        return [CCActionFadeTo actionWithDuration:duration opacity:[kf1.value intValue]];
+    }
+    else if ([name isEqualToString:@"color"])
+    {
+        CCColor* color = kf1.value;
+        return [CCActionTintTo actionWithDuration:duration color:color];
+    }
+    else if ([name isEqualToString:@"visible"])
+    {
+        if ([kf1.value boolValue])
+        {
+            return [CCActionSequence actionOne:[CCActionDelay actionWithDuration:duration] two:[CCActionShow action]];
+        }
+        else
+        {
+            return [CCActionSequence actionOne:[CCActionDelay actionWithDuration:duration] two:[CCActionHide action]];
+        }
+    }
+    else if ([name isEqualToString:@"spriteFrame"])
+    {
+        return NULL;
+        //return [CCActionSequence actionOne:[CCActionDelay actionWithDuration:duration] two:[CCActionSpriteFrame actionWithSpriteFrame:kf1.value]];
     }
     else
     {
@@ -425,7 +430,9 @@ static NSInteger ccbAnimationManagerID = 0;
     }
     
     // Build Actions
-    [actions addObject:[self createActionForNode:node sequenceProperty:seqProp beginKeyFrame:startFrame endKeyFrame:endFrame]];
+    CCActionSequence* run = [self createActionForNode:node sequenceProperty:seqProp beginKeyFrame:startFrame endKeyFrame:endFrame];
+    if(run)
+        [actions addObject:run];
     
     // Next Sequence
     CCActionCallBlock* nextKeyFrameBlock = [CCActionCallBlock actionWithBlock:^{
@@ -627,9 +634,12 @@ static NSInteger ccbAnimationManagerID = 0;
     [_delegate completedAnimationSequenceNamed:_lastCompletedSequenceName];
     if (block) block(self);
     
+    //self.paused = TRUE;
+    
     // Run next sequence if callbacks did not start a new sequence
     if (_runningSequence == NULL && nextSeqId != -1)
     {
+        //CCLOG(@"%d",actionCounter);
         [self runAnimationsForSequenceId:nextSeqId tweenDuration:0];
     }
 }
@@ -782,10 +792,11 @@ static NSInteger ccbAnimationManagerID = 0;
     CCBKeyframe* startKF = [keyframes objectAtIndex:beginKeyFrame];
     CCBKeyframe* endKF   = [keyframes objectAtIndex:endKeyFrame];
     
-    CCActionSequence* seq;
-    if(endKF.frameActions) {
+    CCActionSequence* seq = nil;
+    
+    //if(endKF.frameActions) {
         seq = [endKF.frameActions copy];
-    } else {
+    //} else {
         
         // Build Animation Actions
         NSMutableArray* actions = [[NSMutableArray alloc] init];
@@ -796,13 +807,13 @@ static NSInteger ccbAnimationManagerID = 0;
             // @todo Apply Easing (Review This)
             action = [self easeAction:action easingType:startKF.easingType easingOpt:startKF.easingOpt];
             [actions addObject:action];
-        }
         
-        // Cache
-        seq = [CCActionSequence actionWithArray:actions];
-        seq.tag = _animationManagerId;
-        endKF.frameActions = [seq copy];
-    }
+            // Cache
+            seq = [CCActionSequence actionWithArray:actions];
+            seq.tag = _animationManagerId;
+            endKF.frameActions = [seq copy];
+        }
+    //}
     
     return seq;
 }
@@ -822,6 +833,7 @@ static NSInteger ccbAnimationManagerID = 0;
         
         if (action.isDone)
         {
+            //actionCounter++;
             [_currentActions removeObjectAtIndex:index];
         }
     }
