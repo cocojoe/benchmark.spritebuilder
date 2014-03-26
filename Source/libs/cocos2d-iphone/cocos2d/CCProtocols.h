@@ -31,16 +31,33 @@
 
 @class CCTexture;
 @class CCDirector;
+@class CCBlendMode;
+@class CCShader;
+
+
+#pragma mark - CCShaderProtocol
+
+@protocol CCShaderProtocol <NSObject>
+
+@property(nonatomic, strong) CCShader *shader;
+@property(nonatomic, strong) NSMutableDictionary *shaderUniforms;
+
+@end
+
 
 #pragma mark - CCBlendProtocol
 /**
  You can specify the blending function.
  */
 @protocol CCBlendProtocol <NSObject>
+
+@property(nonatomic, readwrite, strong) CCBlendMode *blendMode;
+
 /** set the source blending function for the texture */
--(void) setBlendFunc:(ccBlendFunc)blendFunc;
+-(void) setBlendFunc:(ccBlendFunc)blendFunc __deprecated;
 /** returns the blending function used for the texture */
--(ccBlendFunc) blendFunc;
+-(ccBlendFunc) blendFunc __deprecated;
+
 @end
 
 
@@ -60,6 +77,7 @@
 /** sets a new texture. it will be retained */
 -(void) setTexture:(CCTexture*)texture;
 @end
+
 
 #pragma mark - CCLabelProtocol
 /** Common interface for Labels */
@@ -83,7 +101,7 @@
 
 @optional
 /** Called by CCDirector when the projection is updated, and "custom" projection is used */
--(void) updateProjection;
+-(GLKMatrix4) updateProjection;
 
 #ifdef __CC_PLATFORM_IOS
 /** Returns a Boolean value indicating whether the CCDirector supports the specified orientation. Default value is YES (supports all possible orientations) */

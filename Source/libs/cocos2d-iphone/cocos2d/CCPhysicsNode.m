@@ -48,6 +48,7 @@
 }
 
 -(cpArbiter *)arbiter {return _arbiter;}
+-(void)setArbiter:(cpArbiter *)arbiter {_arbiter = arbiter;}
 
 // Check that the arbiter is set and return it.
 -(cpArbiter *)arb
@@ -471,7 +472,7 @@ static cpSpaceDebugColor
 ColorForShape(cpShape *shape, CCDrawNode *draw)
 {return CC_PHYSICS_SHAPE_DEBUG_FILL_COLOR;}
 
--(void)draw
+-(void)draw:(CCRenderer *)renderer transform:(const GLKMatrix4 *)transform
 {
 	if(!_debugDraw) return;
 	

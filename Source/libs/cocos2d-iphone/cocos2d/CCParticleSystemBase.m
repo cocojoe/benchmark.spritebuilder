@@ -50,10 +50,11 @@
 #import "ccConfig.h"
 #import "CCParticleSystemBase.h"
 #import "CCParticleBatchNode.h"
+#import "CCTexture.h"
 #import "CCTextureCache.h"
-#import "CCTextureAtlas.h"
 #import "ccMacros.h"
 #import "Support/CCProfiling.h"
+#import "CCNode_Private.h"
 
 // support
 #import "Support/OpenGL_Internal.h"
@@ -63,10 +64,6 @@
 #import "Support/CCFileUtils.h"
 
 #import "CCParticleSystemBase_Private.h"
-
-@interface CCParticleSystemBase ()
--(void) updateBlendFunc;
-@end
 
 @implementation CCParticleSystemBase
 @synthesize active = _active, duration = _duration;
@@ -79,8 +76,6 @@
 @synthesize emissionRate = _emissionRate;
 @synthesize startSize = _startSize, startSizeVar = _startSizeVar;
 @synthesize endSize = _endSize, endSizeVar = _endSizeVar;
-@synthesize opacityModifyRGB = _opacityModifyRGB;
-@synthesize blendFunc = _blendFunc;
 @synthesize particlePositionType = _particlePositionType;
 @synthesize autoRemoveOnFinish = _autoRemoveOnFinish;
 @synthesize resetOnVisibilityToggle = _resetOnVisibilityToggle;
@@ -133,8 +128,10 @@
 		_duration = [[dictionary valueForKey:@"duration"] floatValue];
 
 		// blend function
-		_blendFunc.src = [[dictionary valueForKey:@"blendFuncSource"] intValue];
-		_blendFunc.dst = [[dictionary valueForKey:@"blendFuncDestination"] intValue];
+		self.blendMode = [CCBlendMode blendModeWithOptions:@{
+			CCBlendFuncSrcColor: [dictionary valueForKey:@"blendFuncSource"],
+			CCBlendFuncDstColor: [dictionary valueForKey:@"blendFuncDestination"],
+		}];
 
 		// color
 		float r,g,b,a;
@@ -238,12 +235,7 @@
             _emissionRate = _totalParticles/_life;
         }
         
-		//don't get the internal texture if a batchNode is used
-		if (!_batchNode)
 		{
-			// Set a compatible default for the alpha transfer
-			_opacityModifyRGB = NO;
-
 			// texture
 			// Try to get the texture from the cache
 
@@ -306,20 +298,12 @@
 			return nil;
 		}
         _allocatedParticles = numberOfParticles;
-
-		if (_batchNode)
-		{
-			for (int i = 0; i < _totalParticles; i++)
-			{
-				_particles[i].atlasIndex=i;
-			}
-		}
-
+		
 		// default, active
 		_active = YES;
 
 		// default blend function
-		_blendFunc = (ccBlendFunc) { CC_BLEND_SRC, CC_BLEND_DST };
+		self.blendMode = [CCBlendMode premultipliedAlphaMode];
 
 		// default movement type;
 		_particlePositionType = CCParticleSystemPositionTypeGrouped;
@@ -605,14 +589,6 @@
 				} else
 					newPos = p->pos;
 
-				// translate newPos to correct position, since matrix transform isn't performed in batchnode
-				// don't update the particle with the new position information, it will interfere with the radius and tangential calculations
-				if (_batchNode)
-				{
-					newPos.x+=_position.x;
-					newPos.y+=_position.y;
-				}
-
 				_updateParticleImp(self, _updateParticleSel, p, newPos);
 
 				// update particle counter
@@ -620,19 +596,8 @@
 
 			} else {
 				// life < 0
-				NSInteger currentIndex = p->atlasIndex;
-
 				if( _particleIdx != _particleCount-1 )
 					_particles[_particleIdx] = _particles[_particleCount-1];
-
-				if (_batchNode)
-				{
-					//disable the switched particle
-					[_batchNode disableParticle:(_atlasIndex+currentIndex)];
-
-					//switch indexes
-					_particles[_particleCount-1].atlasIndex = currentIndex;
-				}
 
 				_particleCount--;
 
@@ -645,8 +610,7 @@
 		_transformSystemDirty = NO;
 	}
 
-	if (!_batchNode)
-		[self postStep];
+	[self postStep];
 
 	CC_PROFILER_STOP_CATEGORY(kCCProfilerCategoryParticles , @"CCParticleSystem - update");
 }
@@ -668,51 +632,21 @@
 
 #pragma mark ParticleSystem - CCTexture protocol
 
--(void) setTexture:(CCTexture*) texture
-{
-	if( _texture != texture ) {
-		_texture = texture;
-
-		[self updateBlendFunc];
-	}
-}
-
--(CCTexture*) texture
-{
-	return _texture;
-}
-
 #pragma mark ParticleSystem - Additive Blending
 -(void) setBlendAdditive:(BOOL)additive
 {
 	if( additive ) {
-		_blendFunc.src = GL_SRC_ALPHA;
-		_blendFunc.dst = GL_ONE;
-
+		self.blendMode = [CCBlendMode addMode];
 	} else {
-
-		if( _texture && ! [_texture hasPremultipliedAlpha] ) {
-			_blendFunc.src = GL_SRC_ALPHA;
-			_blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-		} else {
-			_blendFunc.src = CC_BLEND_SRC;
-			_blendFunc.dst = CC_BLEND_DST;
-		}
+		self.blendMode = [CCBlendMode premultipliedAlphaMode];
 	}
 }
 
 -(BOOL) blendAdditive
 {
-	return( _blendFunc.src == GL_SRC_ALPHA && _blendFunc.dst == GL_ONE);
+	return (self.blendMode == [CCBlendMode addMode]);
 }
 
--(void) setBlendFunc:(ccBlendFunc)blendFunc
-{
-	if( _blendFunc.src != blendFunc.src || _blendFunc.dst != blendFunc.dst ) {
-		_blendFunc = blendFunc;
-		[self updateBlendFunc];
-	}
-}
 #pragma mark ParticleSystem - Total Particles Property
 
 - (void) setTotalParticles:(NSUInteger)tp
@@ -874,27 +808,6 @@
 
 #pragma mark ParticleSystem - methods for batchNode rendering
 
--(CCParticleBatchNode*) batchNode
-{
-	return _batchNode;
-}
-
--(void) setBatchNode:(CCParticleBatchNode*) batchNode
-{
-	if( _batchNode != batchNode ) {
-
-		_batchNode = batchNode; // weak reference
-
-		if( batchNode ) {
-			//each particle needs a unique index
-			for (int i = 0; i < _totalParticles; i++)
-			{
-				_particles[i].atlasIndex=i;
-			}
-		}
-	}
-}
-
 //don't use a transform matrix, this is faster
 -(void) setScale:(float) s
 {
@@ -918,26 +831,6 @@
 {
 	_transformSystemDirty = YES;
 	[super setScaleY:newScaleY];
-}
-
-#pragma mark Particle - Helpers
-
--(void) updateBlendFunc
-{
-	NSAssert(! _batchNode, @"Can't change blending functions when the particle is being batched");
-
-	BOOL premultiplied = [_texture hasPremultipliedAlpha];
-
-	_opacityModifyRGB = NO;
-
-	if( _texture && ( _blendFunc.src == CC_BLEND_SRC && _blendFunc.dst == CC_BLEND_DST ) ) {
-		if( premultiplied )
-			_opacityModifyRGB = YES;
-		else {
-			_blendFunc.src = GL_SRC_ALPHA;
-			_blendFunc.dst = GL_ONE_MINUS_SRC_ALPHA;
-		}
-	}
 }
 
 #pragma mark Color properties

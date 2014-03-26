@@ -98,6 +98,8 @@
     _constraint.anchorA = CCP_TO_CPV(anchorA);
     _constraint.anchorB = CCP_TO_CPV(anchorB);
 	
+	_constraint.anchorA = CCP_TO_CPV(anchorA);
+	_constraint.anchorB = CCP_TO_CPV(anchorB);
 	_constraint.dist = cpvdist([bodyA.body localToWorld:CCP_TO_CPV(anchorA)], [bodyB.body localToWorld:CCP_TO_CPV(anchorB)]);
 }
 

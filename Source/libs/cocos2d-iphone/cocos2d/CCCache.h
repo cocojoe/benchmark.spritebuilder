@@ -1,7 +1,9 @@
 /*
  * cocos2d for iPhone: http://www.cocos2d-iphone.org
  *
- * Copyright (c) 2009 Valentin Milea
+ * Copyright (c) 2010 Ricardo Quesada
+ * Copyright (c) 2011 Zynga Inc.
+ * Copyright (c) 2013 Lars Birkemose
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,25 +25,38 @@
  *
  */
 
+#import <Foundation/Foundation.h>
+#import "cocos2d.h"
 
-#import "TransformUtils.h"
+@interface CCCacheEntry : NSObject
 
-void CGAffineToGL(const CGAffineTransform *t, GLfloat *m)
-{
-	// | m[0] m[4] m[8]  m[12] |     | m11 m21 m31 m41 |     | a c 0 tx |
-	// | m[1] m[5] m[9]  m[13] |     | m12 m22 m32 m42 |     | b d 0 ty |
-	// | m[2] m[6] m[10] m[14] | <=> | m13 m23 m33 m43 | <=> | 0 0 1  0 |
-	// | m[3] m[7] m[11] m[15] |     | m14 m24 m34 m44 |     | 0 0 0  1 |
+@property(nonatomic, strong) id sharedData;
+@property(nonatomic, weak) id publicObject;
 
-	m[2] = m[3] = m[6] = m[7] = m[8] = m[9] = m[11] = m[14] = 0.0f;
-	m[10] = m[15] = 1.0f;
-	m[0] = t->a; m[4] = t->c; m[12] = t->tx;
-	m[1] = t->b; m[5] = t->d; m[13] = t->ty;
-}
+@end
 
-void GLToCGAffine(const GLfloat *m, CGAffineTransform *t)
-{
-	t->a = m[0]; t->c = m[4]; t->tx = m[12];
-	t->b = m[1]; t->d = m[5]; t->ty = m[13];
-}
+//------------------------------------------------------------------------------
 
+@interface CCCache : NSObject
+
+//------------------------------------------------------------------------------
+
++ (instancetype)cache;
+- (instancetype)init;
+
+- (void)preload:(id<NSCopying>)key;
+
+- (id)rawObjectForKey:(id<NSCopying>)key;
+- (id)objectForKey:(id<NSCopying>)key;
+- (void)makeAlias:(id<NSCopying>)alias forKey:(id<NSCopying>)key;
+
+- (void)flush;
+
+- (id)createSharedDataForKey:(id<NSCopying>)key;
+- (id)createPublicObjectForSharedData:(id)data;
+- (void)disposeOfSharedData:(id)data;
+
+
+//------------------------------------------------------------------------------
+
+@end

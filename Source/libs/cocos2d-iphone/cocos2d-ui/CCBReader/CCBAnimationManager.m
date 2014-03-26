@@ -794,9 +794,9 @@ static NSInteger ccbAnimationManagerID = 0;
     
     CCActionSequence* seq = nil;
     
-    //if(endKF.frameActions) {
+    if(endKF.frameActions) {
         seq = [endKF.frameActions copy];
-    //} else {
+    } else {
         
         // Build Animation Actions
         NSMutableArray* actions = [[NSMutableArray alloc] init];
@@ -813,7 +813,7 @@ static NSInteger ccbAnimationManagerID = 0;
             seq.tag = _animationManagerId;
             endKF.frameActions = [seq copy];
         }
-    //}
+    }
     
     return seq;
 }

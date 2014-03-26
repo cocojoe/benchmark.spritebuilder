@@ -163,7 +163,8 @@
 
 -(void)setDensity:(CGFloat)density
 {
-    FOREACH_SHAPE(self, shape) shape.density = density;
+	NSAssert(_shapeList.next == nil, @"Cannot set the density of a multi-shape body directly. Set the individual shape densities instead.");
+	_shapeList.density = density;
 }
 
 -(CGFloat)area
@@ -280,8 +281,6 @@ static cpBodyType ToChipmunkBodyType[] = {CP_BODY_TYPE_DYNAMIC, /*CP_BODY_TYPE_K
 		pair.arbiter = arbiter;
 		block(pair);
 	});
-	
-	pair.arbiter = NULL;
 }
 
 //MARK: Velocity

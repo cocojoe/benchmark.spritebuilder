@@ -151,7 +151,7 @@ typedef void (*_CC_UPDATE_PARTICLE_IMP)(id, SEL, _CCParticle*, CGPoint);
  - Radius direction (Radius mode) (Particle Designer supports outwards to inwards direction only)
 
  */
-@interface CCParticleSystemBase : CCNode <CCTextureProtocol>
+@interface CCParticleSystemBase : CCNode <CCTextureProtocol, CCShaderProtocol, CCBlendProtocol>
 {
 	// True if the the particle system is active.
 	BOOL _active;
@@ -288,15 +288,6 @@ typedef void (*_CC_UPDATE_PARTICLE_IMP)(id, SEL, _CCParticle*, CGPoint);
     // Particle emission counter.
 	float _emitCounter;
 
-	// Texture used.
-	CCTexture *_texture;
-    
-	// Blend function.
-	ccBlendFunc	_blendFunc;
-    
-	// Texture alpha behavior.
-	BOOL _opacityModifyRGB;
-
 	// Movment type: free or grouped.
 	CCParticleSystemPositionType	_particlePositionType;
 
@@ -312,9 +303,6 @@ typedef void (*_CC_UPDATE_PARTICLE_IMP)(id, SEL, _CCParticle*, CGPoint);
 	// Optimization.
 	_CC_UPDATE_PARTICLE_IMP	_updateParticleImp;
 	SEL						_updateParticleSel;
-
-	// For batching. If nil, then it won't be batched.
-	CCParticleBatchNode *_batchNode;
 
 	// Index of system in batch node array.
 	NSUInteger _atlasIndex;
@@ -396,15 +384,6 @@ typedef void (*_CC_UPDATE_PARTICLE_IMP)(id, SEL, _CCParticle*, CGPoint);
 
 /** Maxmium particles of the system. */
 @property (nonatomic,readwrite,assign) NSUInteger totalParticles;
-
-/** Particle system texture. */
-@property (nonatomic,readwrite, strong) CCTexture * texture;
-
-/** Blend method. */
-@property (nonatomic,readwrite) ccBlendFunc blendFunc;
-
-/** True to enbale alpha value modifies color. */
-@property (nonatomic, readwrite, getter=doesOpacityModifyRGB, assign) BOOL opacityModifyRGB;
 
 /** True to enable blend additive mode. (GL_SRC_ALPHA, GL_ONE). */
 @property (nonatomic,readwrite) BOOL blendAdditive;

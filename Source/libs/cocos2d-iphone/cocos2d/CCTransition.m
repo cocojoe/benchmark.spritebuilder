@@ -25,6 +25,8 @@
  *
  */
 
+#import "objc/message.h"
+
 #import "CCTransition.h"
 #import "CCDirector_Private.h"
 #import "CCNode_Private.h"
@@ -112,7 +114,7 @@ typedef NS_ENUM(NSInteger, CCTransitionFixedFunction)
     _outgoingOverIncoming = NO;
     
     // find out where the outgoing scene will end (if it is a transition with movement)
-    CGSize size = [CCDirector sharedDirector].designSize;
+    CGSize size = [CCDirector sharedDirector].viewportRect.size;
     switch (direction) {
         case CCTransitionDirectionDown: _outgoingDestination = CGPointMake(0, -size.height); break;
         case CCTransitionDirectionLeft: _outgoingDestination = CGPointMake(-size.width, 0); break;
@@ -188,21 +190,25 @@ typedef NS_ENUM(NSInteger, CCTransitionFixedFunction)
 
     // create render textures
     // get viewport size
-    CGSize size = [CCDirector sharedDirector].designSize;
+    CGRect rect = [CCDirector sharedDirector].viewportRect;
+		
+		// Make sure we aren't rounding down.
+		rect.size.width = ceil(rect.size.width);
+		rect.size.height = ceil(rect.size.height);
 
     // create texture for outgoing scene
-    _outgoingTexture = [CCRenderTexture renderTextureWithWidth:size.width / _outgoingDownScale
-                                                        height:size.height / _outgoingDownScale
+    _outgoingTexture = [CCRenderTexture renderTextureWithWidth:rect.size.width / _outgoingDownScale
+                                                        height:rect.size.height / _outgoingDownScale
                                                    pixelFormat:_transitionPixelFormat];
-    _outgoingTexture.position = CGPointMake(size.width * 0.5f, size.height * 0.5f);
+    _outgoingTexture.position = CGPointMake(rect.size.width * 0.5f + rect.origin.x, rect.size.height * 0.5f + rect.origin.y);
     _outgoingTexture.scale = _outgoingDownScale;
     [self addChild:_outgoingTexture z:_outgoingOverIncoming];
     
     // create texture for incoming scene
-    _incomingTexture = [CCRenderTexture renderTextureWithWidth:size.width / _incomingDownScale
-                                                        height:size.height / _incomingDownScale
+    _incomingTexture = [CCRenderTexture renderTextureWithWidth:rect.size.width / _incomingDownScale
+                                                        height:rect.size.height / _incomingDownScale
                                                    pixelFormat:_transitionPixelFormat];
-    _incomingTexture.position = CGPointMake(size.width * 0.5f, size.height * 0.5f);
+    _incomingTexture.position = CGPointMake(rect.size.width * 0.5f + rect.origin.x, rect.size.height * 0.5f + rect.origin.y);
     _incomingTexture.scale = _incomingDownScale;
     [self addChild:_incomingTexture];
     
@@ -242,7 +248,7 @@ typedef NS_ENUM(NSInteger, CCTransitionFixedFunction)
 				// Start incoming scene
         [[CCDirector sharedDirector] replaceScene:_incomingScene];
         [_incomingScene onEnterTransitionDidFinish];
-        _incomingScene.paused = _incomingPauseState;
+        [_incomingScene setPaused:NO];
         _incomingScene = nil;
         
         return;
@@ -274,7 +280,7 @@ typedef NS_ENUM(NSInteger, CCTransitionFixedFunction)
     
     glGetFloatv(GL_COLOR_CLEAR_VALUE, clearColor);
     [_outgoingTexture beginWithClear:clearColor[0] g:clearColor[1] b:clearColor[2] a:clearColor[3]];
-    [_outgoingScene visit];
+	    [_outgoingScene visit];
     [_outgoingTexture end];
     
     _outgoingScene.scale = oldScale;
@@ -291,7 +297,7 @@ typedef NS_ENUM(NSInteger, CCTransitionFixedFunction)
     
     glGetFloatv(GL_COLOR_CLEAR_VALUE, clearColor);
     [_incomingTexture beginWithClear:clearColor[0] g:clearColor[1] b:clearColor[2] a:clearColor[3]];
-    [_incomingScene visit];
+	    [_incomingScene visit];
     [_incomingTexture end];
     
     _incomingScene.scale = oldScale;
@@ -327,13 +333,10 @@ typedef NS_ENUM(NSInteger, CCTransitionFixedFunction)
 
 // -----------------------------------------------------------------
 
-- (void)draw
+-(void)draw:(CCRenderer *)renderer transform:(const GLKMatrix4 *)transform
 {
-    // remove ARC warning about possible leak from performSelector
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Warc-performSelector-leaks"
-    [self performSelector:_drawSelector];
-#pragma clang diagnostic pop
+	typedef id (*Func)(id, SEL);
+	((Func)objc_msgSend)(self, _drawSelector);
 }
 
 - (void)drawFixedFunction
@@ -345,6 +348,7 @@ typedef NS_ENUM(NSInteger, CCTransitionFixedFunction)
             _outgoingTexture.sprite.opacity = 1;
             break;
         case CCTransitionFixedFunctionFadeWithColor:
+				    #warning TODO
             glClearColor(_color.r, _color.g, _color.b, _color.a);
             _incomingTexture.sprite.opacity = clampf(2.0 * (_progress - 0.5), 0, 1);
             _outgoingTexture.sprite.opacity = clampf(1.0 * (1 - (2 * _progress)), 0, 1);

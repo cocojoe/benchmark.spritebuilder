@@ -29,21 +29,18 @@
 #import "CCGL.h"
 #import "OpenGL_Internal.h"
 
-#import "CCGLProgram.h"
-#import "CCShaderCache.h"
+#import "CCShader.h"
 
 #import "CCDirector.h"
 #import "CGPointExtension.h"
 
-#import "kazmath/GL/matrix.h"
-
 #import "CCNode_Private.h"
-#import "CCDrawingPrimitives.h"
+//#import "CCDrawingPrimitives.h"
 
 static GLint _stencilBits = -1;
 
-static void setProgram(CCNode *n, CCGLProgram *p) {
-    n.shaderProgram = p;
+static void setProgram(CCNode *n, CCShader *p) {
+    n.shader = p;
     if (!n.children) return;
     for (CCNode* c in n.children) setProgram(c,p);
 }
@@ -117,12 +114,12 @@ static void setProgram(CCNode *n, CCGLProgram *p) {
     [super onExit];
 }
 
-- (void)visit
+- (void)visit:(CCRenderer *)renderer parentTransform:(const GLKMatrix4 *)parentTransform
 {
     // if stencil buffer disabled
     if (_stencilBits < 1) {
         // draw everything, as if there where no stencil
-        [super visit];
+        [super visit:renderer parentTransform:parentTransform];
         return;
     }
     
@@ -132,7 +129,7 @@ static void setProgram(CCNode *n, CCGLProgram *p) {
     if (!_stencil || !_stencil.visible) {
         if (_inverted) {
             // draw everything
-            [super visit];
+            [super visit:renderer parentTransform:parentTransform];
         }
         return;
     }
@@ -150,7 +147,7 @@ static void setProgram(CCNode *n, CCGLProgram *p) {
             CCLOGWARN(@"Nesting more than %d stencils is not supported. Everything will be drawn without stencil for this node and its childs.", _stencilBits);
         });
         // draw everything, as if there where no stencil
-        [super visit];
+        [super visit:renderer parentTransform:parentTransform];
         return;
     }
     
@@ -216,38 +213,39 @@ static void setProgram(CCNode *n, CCGLProgram *p) {
     //     never draw it into the frame buffer
     //     if not in inverted mode: set the current layer value to 0 in the stencil buffer
     //     if in inverted mode: set the current layer value to 1 in the stencil buffer
+		#warning TODO
 #if defined(__CC_PLATFORM_MAC)
-    // There is a bug in some ATI drivers where glStencilMask does not affect glClear.
-    // Draw a full screen rectangle to clear the stencil buffer.
-    glStencilFunc(GL_NEVER, mask_layer, mask_layer);
-    glStencilOp(!_inverted ? GL_ZERO : GL_REPLACE, GL_KEEP, GL_KEEP);
-
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-
-    int x = viewport[0];
-    int y = viewport[1];
-    int width = viewport[2];
-    int height = viewport[3];
-
-    kmGLMatrixMode(KM_GL_PROJECTION);
-    kmGLPushMatrix();
-    kmGLLoadIdentity();
-
-    kmMat4 orthoMatrix;
-    kmMat4OrthographicProjection(&orthoMatrix, x, width, y, height, -1, 1);
-    kmGLMultMatrix( &orthoMatrix );
-
-    kmGLMatrixMode(KM_GL_MODELVIEW);
-    kmGLPushMatrix();
-    kmGLLoadIdentity();
-
-    ccDrawSolidRect(ccp(x, y), ccp(width, height), [CCColor whiteColor]);
-
-    kmGLMatrixMode(KM_GL_PROJECTION);
-    kmGLPopMatrix();
-    kmGLMatrixMode(KM_GL_MODELVIEW);
-    kmGLPopMatrix();
+//    // There is a bug in some ATI drivers where glStencilMask does not affect glClear.
+//    // Draw a full screen rectangle to clear the stencil buffer.
+//    glStencilFunc(GL_NEVER, mask_layer, mask_layer);
+//    glStencilOp(!_inverted ? GL_ZERO : GL_REPLACE, GL_KEEP, GL_KEEP);
+//
+//    int viewport[4];
+//    glGetIntegerv(GL_VIEWPORT, viewport);
+//
+//    int x = viewport[0];
+//    int y = viewport[1];
+//    int width = viewport[2];
+//    int height = viewport[3];
+//
+//    kmGLMatrixMode(KM_GL_PROJECTION);
+//    kmGLPushMatrix();
+//    kmGLLoadIdentity();
+//
+//    kmMat4 orthoMatrix;
+//    kmMat4OrthographicProjection(&orthoMatrix, x, width, y, height, -1, 1);
+//    kmGLMultMatrix( &orthoMatrix );
+//
+//    kmGLMatrixMode(KM_GL_MODELVIEW);
+//    kmGLPushMatrix();
+//    kmGLLoadIdentity();
+//
+//    ccDrawSolidRect(ccp(x, y), ccp(width, height), [CCColor whiteColor]);
+//
+//    kmGLMatrixMode(KM_GL_PROJECTION);
+//    kmGLPopMatrix();
+//    kmGLMatrixMode(KM_GL_MODELVIEW);
+//    kmGLPopMatrix();
 #else
     glClearStencil(!_inverted ? 0 : ~0);
     glClear(GL_STENCIL_BUFFER_BIT);
@@ -275,13 +273,13 @@ static void setProgram(CCNode *n, CCGLProgram *p) {
 #if defined(__CC_PLATFORM_IOS)
         // since glAlphaTest do not exists in OES, use a shader that writes
         // pixel only if greater than an alpha threshold
-        CCGLProgram *program = [[CCShaderCache sharedShaderCache] programForKey:kCCShader_PositionTextureColorAlphaTest];
-        GLint alphaValueLocation = glGetUniformLocation(program.program, kCCUniformAlphaTestValue_s);
-        // set our alphaThreshold
-        [program setUniformLocation:alphaValueLocation withF1:_alphaThreshold];
+//        CCShader *program = [[CCShaderCache sharedShaderCache] programForKey:kCCShader_PositionTextureColorAlphaTest];
+//        GLint alphaValueLocation = glGetUniformLocation(program.program, kCCUniformAlphaTestValue_s);
+//        // set our alphaThreshold
+//        [program setUniformLocation:alphaValueLocation withF1:_alphaThreshold];
         // we need to recursively apply this shader to all the nodes in the stencil node
         // XXX: we should have a way to apply shader to all nodes without having to do this
-        setProgram(_stencil, program);
+//        setProgram(_stencil, program);
 #elif defined(__CC_PLATFORM_MAC)
         // manually save the alpha test state
         currentAlphaTestEnabled = glIsEnabled(GL_ALPHA_TEST);
@@ -298,11 +296,9 @@ static void setProgram(CCNode *n, CCGLProgram *p) {
 
     // draw the stencil node as if it was one of our child
     // (according to the stencil test func/op and alpha (or alpha shader) test)
-    kmGLPushMatrix();
-    [self transform];
-    [_stencil visit];
-    kmGLPopMatrix();
-    
+    GLKMatrix4 transform = [self transform:parentTransform];
+    [_stencil visit:renderer parentTransform:&transform];
+  
     // restore alpha test state
     if (_alphaThreshold < 1) {
 #if defined(__CC_PLATFORM_IOS)
@@ -335,7 +331,7 @@ static void setProgram(CCNode *n, CCGLProgram *p) {
     glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
     
     // draw (according to the stencil test func) this node and its childs
-    [super visit];
+    [super visit:renderer parentTransform:parentTransform];
     
     ///////////////////////////////////
     // CLEANUP

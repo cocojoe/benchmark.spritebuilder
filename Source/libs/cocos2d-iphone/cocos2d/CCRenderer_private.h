@@ -1,7 +1,7 @@
 /*
  * cocos2d for iPhone: http://www.cocos2d-iphone.org
  *
- * Copyright (c) 2009 Valentin Milea
+ * Copyright (c) 2014 Cocos2D Authors
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,17 +20,30 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- *
  */
 
-#import "../ccMacros.h"
-#import "../Platforms/CCGL.h"
 
-#ifdef __CC_PLATFORM_IOS
-#import <UIKit/UIKit.h>
-#elif defined(__CC_PLATFORM_MAC)
 #import <Foundation/Foundation.h>
-#endif
+#import "CCRenderer.h"
+#import "CCCache.h"
 
-void CGAffineToGL(const CGAffineTransform *t, GLfloat *m);
-void GLToCGAffine(const GLfloat *m, CGAffineTransform *t);
+
+extern id CCBLENDMODE_CACHE;
+extern id CCRENDERSTATE_CACHE;
+
+
+@interface CCRenderer()
+
+/// Current global shader uniform values.
+@property(nonatomic, copy) NSDictionary *globalShaderUniforms;
+
+/// Retrieve the current renderer for the current thread.
++(instancetype)currentRenderer;
+
+/// Set the current renderer for the current thread.
++(void)bindRenderer:(CCRenderer *)renderer;
+
+/// Render any currently queued commands.
+-(void)flush;
+
+@end

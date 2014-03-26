@@ -31,8 +31,8 @@
 
 #import "CCProtocols.h"
 #import "Platforms/CCGL.h"
-#import "kazmath/mat4.h"
 #import "CCResponderManager.h"
+#import "CCRenderer.h"
 
 /**
  Possible OpenGL projections used by director
@@ -48,7 +48,7 @@ typedef NS_ENUM(NSUInteger, CCDirectorProjection) {
 	CCDirectorProjectionCustom,
 
 	/// Detault projection is 3D projection
-	CCDirectorProjectionDefault = CCDirectorProjection3D,
+	CCDirectorProjectionDefault = CCDirectorProjection2D,
 
 };
 
@@ -154,6 +154,8 @@ and when to execute the Scenes.
 	
 	/*  OpenGLView. On iOS it is a copy of self.view */
 	CCGLView		*__view;
+	
+	CCRenderer *_renderer;
 }
 
 /** returns the cocos2d thread.
@@ -200,6 +202,12 @@ and when to execute the Scenes.
 /// User definable value that is used for default contentSizes of many node types (CCScene, CCNodeColor, etc).
 /// Defaults to the view size.
 @property(nonatomic, assign) CGSize designSize;
+
+/// Projection matrix used for rendering.
+@property(nonatomic, readonly) GLKMatrix4 projectionMatrix;
+
+/// The current global shader values values.
+@property(nonatomic, readonly) NSMutableDictionary *globalShaderUniforms;
 
 /** returns a shared instance of the director */
 +(CCDirector*)sharedDirector;
@@ -391,19 +399,19 @@ and when to execute the Scenes.
 /** sets the OpenGL default values */
 -(void) setGLDefaultValues;
 
-/**
- *  Enables/disables OpenGL alpha blending.
- *
- *  @param on Set to YES to enable alpha blending.
- */
-- (void) setAlphaBlending: (BOOL) on;
-
-/**
- *  Enables/disables OpenGL depth test.
- *
- *  @param on Set to YES to enable depth tests.
- */
-- (void) setDepthTest: (BOOL) on;
+///**
+// *  Enables/disables OpenGL alpha blending.
+// *
+// *  @param on Set to YES to enable alpha blending.
+// */
+//- (void) setAlphaBlending: (BOOL) on;
+//
+///**
+// *  Enables/disables OpenGL depth test.
+// *
+// *  @param on Set to YES to enable depth tests.
+// */
+//- (void) setDepthTest: (BOOL) on;
 @end
 
 // optimization. Should only be used to read it. Never to write it.
