@@ -159,43 +159,25 @@ static NSInteger ccbAnimationManagerID = 0;
     
     if ([name isEqualToString:@"rotation"])
     {
-        return [CCActionRotateTo actionWithDuration:duration angle:[kf1.value floatValue] direct:YES];
+        return [CCActionRotateTo actionWithDuration:duration angle:[kf1.value floatValue] simple:YES];
     }
     else if ([name isEqualToString:@"position"])
     {
-        // Get position type
-        //int type = [[[self baseValueForNode:node propertyName:name] objectAtIndex:2] intValue];
-        
         id value = kf1.value;
         
         // Get relative position
         float x = [[value objectAtIndex:0] floatValue];
         float y = [[value objectAtIndex:1] floatValue];
-        
-        //CGSize containerSize = [self containerSize:node.parent];
-        
-        //CGPoint absPos = [node absolutePositionFromRelative:ccp(x,y) type:type parentSize:containerSize propertyName:name];
-        
+
         return [CCActionMoveTo actionWithDuration:duration position:ccp(x,y)];
     }
     else if ([name isEqualToString:@"scale"])
     {
-        // Get position type
-        //int type = [[[self baseValueForNode:node propertyName:name] objectAtIndex:2] intValue];
-        
         id value = kf1.value;
         
         // Get relative scale
         float x = [[value objectAtIndex:0] floatValue];
         float y = [[value objectAtIndex:1] floatValue];
-        
-        /*
-         if (type == kCCBScaleTypeMultiplyResolution)
-         {
-         float resolutionScale = [node resolutionScale];
-         x *= resolutionScale;
-         y *= resolutionScale;
-         }*/
         
         return [CCActionScaleTo actionWithDuration:duration scaleX:x scaleY:y];
     }
@@ -239,7 +221,6 @@ static NSInteger ccbAnimationManagerID = 0;
     }
     else if ([name isEqualToString:@"spriteFrame"])
     {
-        //return NULL;
         return [CCActionSequence actionOne:[CCActionDelay actionWithDuration:duration] two:[CCActionSpriteFrame actionWithSpriteFrame:kf1.value]];
     }
     else
@@ -259,7 +240,6 @@ static NSInteger ccbAnimationManagerID = 0;
         kf1.time = tweenDuration;
         kf1.easingType = kCCBKeyframeEasingLinear;
         
-        // Animate @toto Add to current actions (needs tested)
         CCActionInterval* tweenAction = [self actionFromKeyframe0:NULL andKeyframe1:kf1 propertyName:name node:node];
         tweenAction.tag = (int)_animationManagerId;
         [tweenAction startWithTarget:node];
@@ -267,12 +247,9 @@ static NSInteger ccbAnimationManagerID = 0;
     }
     else
     {
-        // Just set the value
-        
+
         if ([name isEqualToString:@"position"])
         {
-            // Get position type
-            //int type = [[[self baseValueForNode:node propertyName:name] objectAtIndex:2] intValue];
             
             // Get relative position
             float x = [[value objectAtIndex:0] floatValue];
@@ -282,22 +259,15 @@ static NSInteger ccbAnimationManagerID = 0;
 #elif defined (__CC_PLATFORM_MAC)
             [node setValue:[NSValue valueWithPoint:ccp(x,y)] forKey:name];
 #endif
-            
-            //[node setRelativePosition:ccp(x,y) type:type parentSize:[self containerSize:node.parent] propertyName:name];
         }
         else if ([name isEqualToString:@"scale"])
         {
-            // Get scale type
-            //int type = [[[self baseValueForNode:node propertyName:name] objectAtIndex:2] intValue];
-            
             // Get relative scale
             float x = [[value objectAtIndex:0] floatValue];
             float y = [[value objectAtIndex:1] floatValue];
             
             [node setValue:[NSNumber numberWithFloat:x] forKey:[name stringByAppendingString:@"X"]];
             [node setValue:[NSNumber numberWithFloat:y] forKey:[name stringByAppendingString:@"Y"]];
-            
-            //[node setRelativeScaleX:x Y:y type:type propertyName:name];
         }
         else if ([name isEqualToString:@"skew"])
         {
@@ -567,7 +537,6 @@ static NSInteger ccbAnimationManagerID = 0;
     // Set the running scene
     _runningSequence = [self sequenceFromSequenceId:seqId];
     
-    //[_scheduler setPaused:NO target:self];
     _paused = NO;
 }
 
@@ -633,13 +602,10 @@ static NSInteger ccbAnimationManagerID = 0;
     // Callbacks
     [_delegate completedAnimationSequenceNamed:_lastCompletedSequenceName];
     if (block) block(self);
-    
-    //self.paused = TRUE;
-    
+
     // Run next sequence if callbacks did not start a new sequence
     if (_runningSequence == NULL && nextSeqId != -1)
     {
-        //CCLOG(@"%d",actionCounter);
         [self runAnimationsForSequenceId:nextSeqId tweenDuration:0];
     }
 }
@@ -794,6 +760,7 @@ static NSInteger ccbAnimationManagerID = 0;
     
     CCActionSequence* seq = nil;
     
+    // Check Keyframe Cache
     if(endKF.frameActions) {
         seq = [endKF.frameActions copy];
     } else {
@@ -811,7 +778,7 @@ static NSInteger ccbAnimationManagerID = 0;
             // Cache
             seq = [CCActionSequence actionWithArray:actions];
             seq.tag = _animationManagerId;
-            endKF.frameActions = [seq copy];
+            endKF.frameActions = [seq copy]; 
         }
     }
     
